@@ -69,6 +69,7 @@ func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}) bool {
 	}
 	url := fmt.Sprintf("%s/%s/?data=%s", host, trackPath, base64.StdEncoding.EncodeToString(marshaledData))
 	println("sending", url)
+	//http.Get(url)
 	return true
 }
 
