@@ -4,14 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	//"net/http"
+	"net/http"
 	"strconv"
 	"time"
 )
 
 const (
-	host = "http://api.mixpanel.com"
-	trackPath = "track"
+	host       = "http://api.mixpanel.com"
+	trackPath  = "track"
 	engagePath = "engage"
 )
 
@@ -41,8 +41,8 @@ type mixpanel struct {
 */
 
 type eventData struct {
-	event string                 `json:"event"`
-	props map[string]interface{} `json:"properties"`
+	Event string                 `json:"event"`
+	Props map[string]interface{} `json:"properties"`
 }
 
 func New(token string) *mixpanel {
@@ -53,23 +53,30 @@ func New(token string) *mixpanel {
 
 func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}) bool {
 	data := &eventData{
-		event: e,
-		props: make(map[string]interface{}),
+		Event: e,
+		Props: map[string]interface{}{
+			"time":  time.Now().Unix(),
+			"token": mp.token,
+		},
 	}
-	data.props["time"] = time.Now().Unix()
 	if uid != 0 {
-		data.props["distinct_id"] = strconv.Itoa(int(uid))
+		data.Props["distinct_id"] = strconv.Itoa(int(uid))
 	}
 	for k, v := range p {
-		data.props[k] = v
+		data.Props[k] = v
 	}
+
 	marshaledData, err := json.Marshal(data)
 	if err != nil {
 		return false
 	}
+
 	url := fmt.Sprintf("%s/%s/?data=%s", host, trackPath, base64.StdEncoding.EncodeToString(marshaledData))
-	println("sending", url)
-	//http.Get(url)
+
+	_, err = http.Get(url)
+	if err != nil {
+		fmt.Printf("error: %s\n", err.Error())
+	}
 	return true
 }
 
