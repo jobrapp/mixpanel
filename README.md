@@ -8,3 +8,5 @@ https://mixpanel.com/help/reference/http
 
 usage
 mixpanel.New(token).Track(userId, event_name, propsMap)
+
+mixpanel.New(token).Engage(userId, propsMap, ip)

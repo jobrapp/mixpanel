@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -65,7 +66,7 @@ func New(token string) *mixpanel {
 	}
 }
 
-func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}) bool {
+func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}, params ...map[string]interface{}) bool {
 	data := &eventData{
 		Event: e,
 		Props: map[string]interface{}{
@@ -85,9 +86,19 @@ func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}) bool {
 		return false
 	}
 
-	url := fmt.Sprintf("%s/%s/?data=%s", host, trackPath, base64.StdEncoding.EncodeToString(marshaledData))
+	u := fmt.Sprintf("%s/%s/?data=%s", host, trackPath, base64.StdEncoding.EncodeToString(marshaledData))
 
-	_, err = http.Get(url)
+	parameters := url.Values{}
+	for _, val := range params {
+		for k, v := range val {
+			parameters.Add(k, v.(string))
+		}
+	}
+	if qs := parameters.Encode(); qs != "" {
+		u += "&" + qs
+	}
+
+	_, err = http.Get(u)
 	if err != nil {
 		return false
 	}
