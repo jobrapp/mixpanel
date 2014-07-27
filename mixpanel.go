@@ -45,6 +45,20 @@ type eventData struct {
 	Props map[string]interface{} `json:"properties"`
 }
 
+type engageData struct {
+	Token   string      `json:"token"`
+	Time    int64       `json:"time"`
+	Id      int64       `json:"distinct_id"`
+	Ip      string      `json:"ip,omitempty"`
+	Set     interface{} `json:"set,omitempty"`
+	SetOnce interface{} `json:"set_once,omitempty"`
+	Add     interface{} `json:"add,omitempty"`
+	Append  interface{} `json:"append,omitempty"`
+	Union   interface{} `json:"union,omitempty"`
+	Unset   interface{} `json:"unset,omitempty"`
+	Delete  interface{} `json:"delete,omitempty"`
+}
+
 func New(token string) *mixpanel {
 	return &mixpanel{
 		token: token,
@@ -75,11 +89,59 @@ func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}) bool {
 
 	_, err = http.Get(url)
 	if err != nil {
-		fmt.Printf("error: %s\n", err.Error())
+		return false
 	}
 	return true
 }
 
-func (mp *mixpanel) Engage(uid int64, e string, p map[string]interface{}) bool {
-	return false
+func (mp *mixpanel) Engage(uid int64, p map[string]interface{}, ip string) bool {
+	profileData := &engageData{
+		Token: mp.token,
+		Time:  time.Now().Unix(),
+	}
+	if uid != 0 {
+		profileData.Id = uid
+	}
+	if ip != "" {
+		profileData.Ip = ip
+	}
+	for k, v := range p {
+		switch k {
+		case "set":
+			profileData.Set = v
+			break
+		case "set_once":
+			profileData.SetOnce = v
+			break
+		case "add":
+			profileData.Add = v
+			break
+		case "append":
+			profileData.Append = v
+			break
+		case "union":
+			profileData.Union = v
+			break
+		case "unset":
+			profileData.Unset = v
+			break
+		case "delete":
+			profileData.Delete = v
+			break
+		}
+	}
+
+	marshalledData, err := json.Marshal(profileData)
+	if err != nil {
+		return false
+	}
+
+	url := fmt.Sprintf("%s/%s/?data=%s", host, engagePath,
+		base64.StdEncoding.EncodeToString(marshalledData))
+
+	_, err = http.Get(url)
+	if err != nil {
+		return false
+	}
+	return true
 }
