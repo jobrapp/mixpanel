@@ -86,17 +86,32 @@ func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}, params 
 		return false
 	}
 
-	u := fmt.Sprintf("%s/%s/?data=%s", host, trackPath, base64.StdEncoding.EncodeToString(marshaledData))
+	u := fmt.Sprintf("%s/%s/?data=%s", host, trackPath,
+		base64.StdEncoding.EncodeToString(marshaledData))
 
 	parameters := url.Values{}
+	// iterate over any query parameters
 	for _, val := range params {
 		for k, v := range val {
-			parameters.Add(k, v.(string))
+			if str, ok := v.(string); ok {
+				/* act on str */
+				parameters.Add(k, str)
+			} else {
+				/* not string - int? */
+				if in, ok := v.(int); ok {
+					parameters.Add(k, strconv.Itoa(in))
+				} else {
+					continue
+				}
+			}
+
 		}
 	}
+	// append encoded params to url if any
 	if qs := parameters.Encode(); qs != "" {
 		u += "&" + qs
 	}
+	// send request
 
 	_, err = http.Get(u)
 	if err != nil {
