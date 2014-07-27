@@ -47,17 +47,17 @@ type eventData struct {
 }
 
 type engageData struct {
-	Token   string      `json:"token"`
-	Time    int64       `json:"time"`
-	Id      int64       `json:"distinct_id"`
-	Ip      string      `json:"ip,omitempty"`
-	Set     interface{} `json:"set,omitempty"`
-	SetOnce interface{} `json:"set_once,omitempty"`
-	Add     interface{} `json:"add,omitempty"`
-	Append  interface{} `json:"append,omitempty"`
-	Union   interface{} `json:"union,omitempty"`
-	Unset   interface{} `json:"unset,omitempty"`
-	Delete  interface{} `json:"delete,omitempty"`
+	Token   string      `json:"$token"`
+	Time    int64       `json:"$time"`
+	Id      int64       `json:"$distinct_id"`
+	Ip      string      `json:"$ip,omitempty"`
+	Set     interface{} `json:"$set,omitempty"`
+	SetOnce interface{} `json:"$set_once,omitempty"`
+	Add     interface{} `json:"$add,omitempty"`
+	Append  interface{} `json:"$append,omitempty"`
+	Union   interface{} `json:"$union,omitempty"`
+	Unset   interface{} `json:"$unset,omitempty"`
+	Delete  interface{} `json:"$delete,omitempty"`
 }
 
 func New(token string) *mixpanel {
@@ -112,7 +112,6 @@ func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}, params 
 		u += "&" + qs
 	}
 	// send request
-
 	_, err = http.Get(u)
 	if err != nil {
 		return false

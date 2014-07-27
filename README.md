@@ -7,19 +7,19 @@ need to implement all of this v
 https://mixpanel.com/help/reference/http
 
 usage
-```go
+```Go
 
 mixpanel.New(token).Track(userId, event_name, propsMap, [queryParams])
 
 ```
 
-```go
+```Go
 mixpanel.New(token).Engage(userId, propsMap, ip)
 ```
 
 
 ## Basic Usage
-```
+```Go
 import (
   "mixpanel"
   "os"
@@ -49,6 +49,6 @@ if you specify query parameters without events properties, pass nil for propsMap
 
 to do: 
 - test adding params work (string, int, big integer, bad values) -> done.
-- test engage
+- test engage -> done
 - abstract params into helper
 - apply params() function in engage
