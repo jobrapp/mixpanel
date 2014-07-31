@@ -1,4 +1,4 @@
-package mixpanel
+package tracking
 
 import (
 	"encoding/base64"
@@ -16,30 +16,9 @@ const (
 	engagePath = "engage"
 )
 
-type mixpanel struct {
+type client struct {
 	token string
 }
-
-/*
-	example track event data:
-  {
-    "event": "Signed Up",
-    "properties": {
-      "distinct_id": "13793",
-      "token": "e3bc4100330c35722740fb8c6f5abddc",
-      "Referred By": "Friend"
-    }
-  }
-	example engage event data:
-	{
-		"$token": "36ada5b10da39a1347559321baf13063",
-		"$distinct_id": "13793",
-		"$ip": "123.123.123.123",
-		"$set": {
-			"Address": "1313 Mockingbird Lane"
-		}
-	}
-*/
 
 type eventData struct {
 	Event string                 `json:"event"`
@@ -60,13 +39,13 @@ type engageData struct {
 	Delete  interface{} `json:"$delete,omitempty"`
 }
 
-func New(token string) *mixpanel {
-	return &mixpanel{
+func New(token string) *client {
+	return &client{
 		token: token,
 	}
 }
 
-func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}, params ...map[string]interface{}) bool {
+func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ...map[string]interface{}) bool {
 	data := &eventData{
 		Event: e,
 		Props: map[string]interface{}{
@@ -119,7 +98,7 @@ func (mp *mixpanel) Track(uid int64, e string, p map[string]interface{}, params 
 	return true
 }
 
-func (mp *mixpanel) Engage(uid int64, p map[string]interface{}, ip string) bool {
+func (mp *client) Engage(uid int64, p map[string]interface{}, ip string) bool {
 	profileData := &engageData{
 		Token: mp.token,
 		Time:  time.Now().Unix(),
