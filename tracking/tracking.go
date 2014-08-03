@@ -16,6 +16,17 @@ const (
 	engagePath = "engage"
 )
 
+// engage constants
+const (
+	EngageSet = "set"
+	EngageSetOnce = "set_once"
+	EngageAdd = "add"
+	EngageAppend = "append"
+	EngageUnion = "union"
+	EngageUnset = "unset"
+	EngageDelete = "delete"
+)
+
 type client struct {
 	token string
 }
@@ -109,27 +120,28 @@ func (mp *client) Engage(uid int64, p map[string]interface{}, ip string) bool {
 	if ip != "" {
 		profileData.Ip = ip
 	}
+	// should probably just add separate methods for each of these
 	for k, v := range p {
 		switch k {
-		case "set":
+		case EngageSet:
 			profileData.Set = v
 			break
-		case "set_once":
+		case EngageSetOnce:
 			profileData.SetOnce = v
 			break
-		case "add":
+		case EngageAdd:
 			profileData.Add = v
 			break
-		case "append":
+		case EngageAppend:
 			profileData.Append = v
 			break
-		case "union":
+		case EngageUnion:
 			profileData.Union = v
 			break
-		case "unset":
+		case EngageUnset:
 			profileData.Unset = v
 			break
-		case "delete":
+		case EngageDelete:
 			profileData.Delete = v
 			break
 		}
