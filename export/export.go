@@ -8,18 +8,34 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sort"
 	"time"
 )
 
 const (
-	host = "https://data.mixpanel.com"
-	path = "api/2.0/export"
+	engageHost = "https://mixpanel.com"
+	exportHost = "https://data.mixpanel.com"
+	engagePath = "api/2.0/engage"
+	exportPath = "api/2.0/export"
 )
 
 type client struct {
 	key string
 	secret string
+}
+
+type EngageData struct {
+	Page    int
+	Props   string
+	Session string
+}
+type ExportData struct {
+	Event    []string
+	FromDate string
+	ToDate   string
+	//Props    map[string]interface{}
+	Props    string
 }
 
 /*
@@ -49,10 +65,11 @@ https://data.mixpanel.com/api/2.0/export/?from_date=2012-02-14&expire=1329760783
 where=properties%5B%22%24os%22%5D+%3D%3D+%22Linux%22&event=%5B%22Viewed+report%22%5D
 */
 
-func (mp *client) constructQueryString(data *Data) string {
-	v := url.Values{}
-	v.Set("expire", fmt.Sprintf("%d", time.Now().Unix() + 60)) // expiry = 1m from now
-	v.Set("api_key", mp.key)
+func addEngageData(data EngageData, v url.Values) url.Values {
+	return v
+}
+
+func addExportData(data ExportData, v url.Values) url.Values {
 	v.Set("from_date", data.FromDate)
 	v.Set("to_date", data.ToDate)
 	if len(data.Event) > 0 {
@@ -62,28 +79,33 @@ func (mp *client) constructQueryString(data *Data) string {
 		}
 		v.Set("event", string(b))
 	}
-
-	/*
+//	if data.Props != nil && len(data.Props) > 0 {
+//		for k, v := range data.Props {
+//			v.Set("where", fmt.Sprintf("properties[\"%s\"]=\"%s\"", k, v))
+//		}
+//	}
 	if data.Props != "" {
+		v.Set("where", data.Props)
 	}
-	*/
+	return v
+}
 
-	/*
-	pseudo-code for `sig` calculation
-	https://mixpanel.com/docs/api-documentation/data-export-api#auth-implementation
-	-----------
-	args = all query parameters going to be sent out with the request 
-	(e.g. api_key, unit, interval, expire, format, etc.) excluding sig.
+func (mp *client) constructQueryString(data interface{}) string {
+	v := url.Values{}
+	v.Set("expire", fmt.Sprintf("%d", time.Now().Unix() + 600)) // expiry = 10m from now
+	v.Set("api_key", mp.key)
 
-	args_sorted = sort_args_alphabetically_by_key(args)
+	// if data is pointer to a struct, get the type of the dereferenced object
+	t := reflect.TypeOf(data)
+	switch t {
+	case reflect.TypeOf(EngageData{}):
+		// engage
+		v = addEngageData(data.(EngageData), v)
+	case reflect.TypeOf(ExportData{}):
+		// export
+		v = addExportData(data.(ExportData), v)
+	}
 
-	args_concat = join(args_sorted) 
-
-	# Output: api_key=ed0b8ff6cc3fbb37a521b40019915f18event=["pages"]
-	#         expire=1248499222format=jsoninterval=24unit=hour
-
-	sig = md5(args_concat + api_secret)
-	*/
 	sortedKeys := make([]string, len(v))
 	i := 0
 	for k, _ := range v {
@@ -101,13 +123,6 @@ func (mp *client) constructQueryString(data *Data) string {
 	return v.Encode()
 }
 
-type Data struct {
-	FromDate string
-	ToDate   string
-	Event    []string
-	Props    string
-}
-
 func New(key, secret string) *client {
 	return &client{
 		key: key,
@@ -115,11 +130,22 @@ func New(key, secret string) *client {
 	}
 }
 
-func (mp *client) Export(data *Data) ([]byte, error) {
+func (mp *client) Engage(data EngageData) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s/?%s", engageHost, engagePath, mp.constructQueryString(data))
+	// send request
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+}
+
+func (mp *client) Export(data ExportData) ([]byte, error) {
 	if data.FromDate == "" || data.ToDate == "" {
 		return nil, errors.New("Calls to (*mixpanel/export/Data).Export must contain both the `Data.FromDate` and `Data.ToDate` fields")
 	}
-	url := fmt.Sprintf("%s/%s/?%s", host, path, mp.constructQueryString(data))
+	url := fmt.Sprintf("%s/%s/?%s", exportHost, exportPath, mp.constructQueryString(data))
 	// send request
 	resp, err := http.Get(url)
 	if err != nil {
