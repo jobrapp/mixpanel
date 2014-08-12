@@ -41,14 +41,13 @@ qparams := map[string]interface{}{
 	"redirect": "https://www.google.com/someUrl?p=true",
 }
 // Send data to Mixpanel
-mixpanel.New(os.getEnv("mixpanel_token")).Track(1, "purchased", propsMap, qparams)
+mixpanel.New(os.Getenv("MIXPANEL_TOKEN")).Track(1, "purchased", propsMap, qparams)
 ```
 
 if you specify query parameters without events properties, pass nil for propsMap.
 
 
-to do: 
-- test adding params work (string, int, big integer, bad values) -> done.
-- test engage -> done
+TODO: 
 - abstract params into helper
 - apply params() function in engage
+- batch events/engage
