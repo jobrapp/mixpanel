@@ -102,10 +102,11 @@ func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ..
 		u += "&" + qs
 	}
 	// send request
-	_, err = http.Get(u)
+	resp, err := http.Get(u)
 	if err != nil {
 		return false
 	}
+	resp.Body.Close()
 	return true
 }
 
@@ -154,9 +155,10 @@ func (mp *client) Engage(uid int64, p map[string]interface{}, ip string) error {
 
 	url := fmt.Sprintf("%s/%s/?data=%s", host, engagePath, base64.StdEncoding.EncodeToString(marshalledData))
 
-	_, err = http.Get(url)
+	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
