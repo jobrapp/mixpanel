@@ -56,7 +56,7 @@ func New(token string) *client {
 	}
 }
 
-func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ...map[string]interface{}) bool {
+func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ...map[string]interface{}) error {
 	data := &eventData{
 		Event: e,
 		Props: map[string]interface{}{
@@ -73,7 +73,7 @@ func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ..
 
 	marshaledData, err := json.Marshal(data)
 	if err != nil {
-		return false
+		return err
 	}
 
 	u := fmt.Sprintf("%s/%s/?data=%s", host, trackPath,
@@ -104,10 +104,10 @@ func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ..
 	// send request
 	resp, err := http.Get(u)
 	if err != nil {
-		return false
+		return err
 	}
 	resp.Body.Close()
-	return true
+	return nil
 }
 
 func (mp *client) Engage(uid int64, p map[string]interface{}, ip string) error {
