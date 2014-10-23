@@ -1,6 +1,7 @@
 package tracking
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -36,6 +37,12 @@ type eventData struct {
 	Props map[string]interface{} `json:"properties"`
 }
 
+type UserEvent struct {
+	DistinctId int64
+	Name       string
+	Props      map[string]interface{}
+}
+
 type engageData struct {
 	Token   string      `json:"$token"`
 	Time    int64       `json:"$time"`
@@ -56,18 +63,16 @@ func New(token string) *client {
 	}
 }
 
-func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ...map[string]interface{}) error {
+func (mp *client) Track(event UserEvent, queryParams ...map[string]interface{}) error {
 	data := &eventData{
-		Event: e,
+		Event: event.Name,
 		Props: map[string]interface{}{
-			"time":  time.Now().Unix(),
+			"time":  time.Now().Unix(), // default to now, can be overwritten by props
 			"token": mp.token,
+			"distinct_id": strconv.FormatInt(event.DistinctId, 10),
 		},
 	}
-	if uid != 0 {
-		data.Props["distinct_id"] = strconv.Itoa(int(uid))
-	}
-	for k, v := range p {
+	for k, v := range event.Props {
 		data.Props[k] = v
 	}
 
@@ -81,7 +86,7 @@ func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ..
 
 	parameters := url.Values{}
 	// iterate over any query parameters
-	for _, val := range params {
+	for _, val := range queryParams {
 		for k, v := range val {
 			if str, ok := v.(string); ok {
 				/* act on str */
@@ -94,7 +99,6 @@ func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ..
 					continue
 				}
 			}
-
 		}
 	}
 	// append encoded params to url if any
@@ -103,6 +107,68 @@ func (mp *client) Track(uid int64, e string, p map[string]interface{}, params ..
 	}
 	// send request
 	resp, err := http.Get(u)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+func (mp *client) TrackBatch(events []UserEvent, queryParams ...map[string]interface{}) error {
+	// enforce max batch size to 50 (mixpanel)
+	maxBatch := 50
+	if len(events) > maxBatch {
+		moreEvents := events[maxBatch:]
+		events = events[:maxBatch]
+		defer mp.TrackBatch(moreEvents, queryParams...)
+	}
+	data := make([]*eventData, 0, maxBatch)
+	for _, event := range events {
+		d := &eventData{
+			Event: event.Name,
+			Props: map[string]interface{}{
+				"time":  time.Now().Unix(), // default to now, can be overwritten by props
+				"token": mp.token,
+				"distinct_id": strconv.FormatInt(event.DistinctId, 10),
+			},
+		}
+		for k, v := range event.Props {
+			d.Props[k] = v
+		}
+		data = append(data, d)
+	}
+
+	marshaledData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	u := fmt.Sprintf("%s/%s", host, trackPath)
+	encodedData := "data="+base64.StdEncoding.EncodeToString(marshaledData)
+
+	parameters := url.Values{}
+	// iterate over any query parameters
+	for _, val := range queryParams {
+		for k, v := range val {
+			if str, ok := v.(string); ok {
+				/* act on str */
+				parameters.Add(k, str)
+			} else {
+				/* not string - int? */
+				if in, ok := v.(int); ok {
+					parameters.Add(k, strconv.Itoa(in))
+				} else {
+					continue
+				}
+			}
+		}
+	}
+	// append encoded params to url if any
+	if qs := parameters.Encode(); qs != "" {
+		u += "?" + qs
+	}
+	// send request
+	resp, err := http.Post(u, "application/x-www-form-urlencoded", bytes.NewBufferString(encodedData))
 	if err != nil {
 		return err
 	}
