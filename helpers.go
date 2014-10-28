@@ -7,9 +7,9 @@ const (
 )
 
 func TimeToMPFmt(t time.Time) string {
-	return t.Format(fmt_mptime)
+	return t.UTC().Format(fmt_mptime)
 }
 
 func Now() string {
-	return TimeToMPFmt(time.Now().UTC())
+	return TimeToMPFmt(time.Now())
 }
