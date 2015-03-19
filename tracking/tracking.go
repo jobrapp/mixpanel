@@ -19,13 +19,13 @@ const (
 
 // engage constants
 const (
-	EngageSet = "set"
+	EngageSet     = "set"
 	EngageSetOnce = "set_once"
-	EngageAdd = "add"
-	EngageAppend = "append"
-	EngageUnion = "union"
-	EngageUnset = "unset"
-	EngageDelete = "delete"
+	EngageAdd     = "add"
+	EngageAppend  = "append"
+	EngageUnion   = "union"
+	EngageUnset   = "unset"
+	EngageDelete  = "delete"
 )
 
 type client struct {
@@ -39,6 +39,12 @@ type eventData struct {
 
 type UserEvent struct {
 	DistinctId int64
+	Name       string
+	Props      map[string]interface{}
+}
+
+type UserEventStringed struct {
+	DistinctId string
 	Name       string
 	Props      map[string]interface{}
 }
@@ -67,8 +73,8 @@ func (mp *client) Track(event UserEvent, queryParams ...map[string]interface{}) 
 	data := &eventData{
 		Event: event.Name,
 		Props: map[string]interface{}{
-			"time":  time.Now().Unix(), // default to now, can be overwritten by props
-			"token": mp.token,
+			"time":        time.Now().Unix(), // default to now, can be overwritten by props
+			"token":       mp.token,
 			"distinct_id": strconv.FormatInt(event.DistinctId, 10),
 		},
 	}
@@ -127,8 +133,8 @@ func (mp *client) TrackBatch(events []UserEvent, queryParams ...map[string]inter
 		d := &eventData{
 			Event: event.Name,
 			Props: map[string]interface{}{
-				"time":  time.Now().Unix(), // default to now, can be overwritten by props
-				"token": mp.token,
+				"time":        time.Now().Unix(), // default to now, can be overwritten by props
+				"token":       mp.token,
 				"distinct_id": strconv.FormatInt(event.DistinctId, 10),
 			},
 		}
@@ -144,7 +150,7 @@ func (mp *client) TrackBatch(events []UserEvent, queryParams ...map[string]inter
 	}
 
 	u := fmt.Sprintf("%s/%s", host, trackPath)
-	encodedData := "data="+base64.StdEncoding.EncodeToString(marshaledData)
+	encodedData := "data=" + base64.StdEncoding.EncodeToString(marshaledData)
 
 	parameters := url.Values{}
 	// iterate over any query parameters
@@ -222,6 +228,57 @@ func (mp *client) Engage(uid int64, p map[string]interface{}, ip string) error {
 	url := fmt.Sprintf("%s/%s/?data=%s", host, engagePath, base64.StdEncoding.EncodeToString(marshalledData))
 
 	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+func (mp *client) TrackString(event UserEventStringed, queryParams ...map[string]interface{}) error {
+	data := &eventData{
+		Event: event.Name,
+		Props: map[string]interface{}{
+			"time":        time.Now().Unix(), // default to now, can be overwritten by props
+			"token":       mp.token,
+			"distinct_id": event.DistinctId,
+		},
+	}
+	for k, v := range event.Props {
+		data.Props[k] = v
+	}
+
+	marshaledData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	u := fmt.Sprintf("%s/%s/?data=%s", host, trackPath,
+		base64.StdEncoding.EncodeToString(marshaledData))
+
+	parameters := url.Values{}
+	// iterate over any query parameters
+	for _, val := range queryParams {
+		for k, v := range val {
+			if str, ok := v.(string); ok {
+				/* act on str */
+				parameters.Add(k, str)
+			} else {
+				/* not string - int? */
+				if in, ok := v.(int); ok {
+					parameters.Add(k, strconv.Itoa(in))
+				} else {
+					continue
+				}
+			}
+		}
+	}
+	// append encoded params to url if any
+	if qs := parameters.Encode(); qs != "" {
+		u += "&" + qs
+	}
+	// send request
+	resp, err := http.Get(u)
 	if err != nil {
 		return err
 	}
