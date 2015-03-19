@@ -63,6 +63,20 @@ type engageData struct {
 	Delete  interface{} `json:"$delete,omitempty"`
 }
 
+type engageDataStringed struct {
+	Token   string      `json:"$token"`
+	Time    int64       `json:"$time"`
+	Id      string      `json:"$distinct_id"`
+	Ip      string      `json:"$ip,omitempty"`
+	Set     interface{} `json:"$set,omitempty"`
+	SetOnce interface{} `json:"$set_once,omitempty"`
+	Add     interface{} `json:"$add,omitempty"`
+	Append  interface{} `json:"$append,omitempty"`
+	Union   interface{} `json:"$union,omitempty"`
+	Unset   interface{} `json:"$unset,omitempty"`
+	Delete  interface{} `json:"$delete,omitempty"`
+}
+
 func New(token string) *client {
 	return &client{
 		token: token,
@@ -189,6 +203,57 @@ func (mp *client) Engage(uid int64, p map[string]interface{}, ip string) error {
 	}
 	if uid != 0 {
 		profileData.Id = uid
+	}
+	if ip != "" {
+		profileData.Ip = ip
+	}
+	// should probably just add separate methods for each of these
+	for k, v := range p {
+		switch k {
+		case EngageSet:
+			profileData.Set = v
+			break
+		case EngageSetOnce:
+			profileData.SetOnce = v
+			break
+		case EngageAdd:
+			profileData.Add = v
+			break
+		case EngageAppend:
+			profileData.Append = v
+			break
+		case EngageUnion:
+			profileData.Union = v
+			break
+		case EngageUnset:
+			profileData.Unset = v
+			break
+		case EngageDelete:
+			profileData.Delete = v
+			break
+		}
+	}
+
+	marshalledData, err := json.Marshal(profileData)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s/%s/?data=%s", host, engagePath, base64.StdEncoding.EncodeToString(marshalledData))
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+func (mp *client) EngageString(id string, p map[string]interface{}, ip string) error {
+	profileData := &engageDataStringed{
+		Id:    id,
+		Token: mp.token,
+		Time:  time.Now().Unix(),
 	}
 	if ip != "" {
 		profileData.Ip = ip
