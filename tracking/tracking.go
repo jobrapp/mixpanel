@@ -84,6 +84,21 @@ func New(token string) *client {
 }
 
 func (mp *client) Track(event UserEvent, queryParams ...map[string]interface{}) error {
+	u, err := mp.CreateLink(event, queryParams...)
+	if err != nil {
+		return err
+	}
+
+	// send request
+	resp, err := http.Get(u)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+func (mp *client) CreateLink(event UserEvent, queryParams ...map[string]interface{}) (string, error) {
 	data := &eventData{
 		Event: event.Name,
 		Props: map[string]interface{}{
@@ -98,7 +113,7 @@ func (mp *client) Track(event UserEvent, queryParams ...map[string]interface{}) 
 
 	marshaledData, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	u := fmt.Sprintf("%s/%s/?data=%s", host, trackPath,
@@ -125,13 +140,8 @@ func (mp *client) Track(event UserEvent, queryParams ...map[string]interface{}) 
 	if qs := parameters.Encode(); qs != "" {
 		u += "&" + qs
 	}
-	// send request
-	resp, err := http.Get(u)
-	if err != nil {
-		return err
-	}
-	resp.Body.Close()
-	return nil
+
+	return u, nil
 }
 
 func (mp *client) TrackBatch(events []UserEvent, queryParams ...map[string]interface{}) error {
