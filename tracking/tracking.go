@@ -102,7 +102,6 @@ func (mp *client) CreateLink(event UserEvent, queryParams ...map[string]interfac
 	data := &eventData{
 		Event: event.Name,
 		Props: map[string]interface{}{
-			"time":        time.Now().Unix(), // default to now, can be overwritten by props
 			"token":       mp.token,
 			"distinct_id": strconv.FormatInt(event.DistinctId, 10),
 		},
