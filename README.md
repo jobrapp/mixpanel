@@ -1,16 +1,16 @@
 mixpanel
 ========
 
-golang mixpanel lib
-
-need to implement all of this v
-https://mixpanel.com/help/reference/http
+Go (Go-lang) Mixpanel lib
 
 usage
 ```Go
-
-mixpanel.New(token).Track(userId, event_name, propsMap, [queryParams])
-
+event := tracking.UserEvent{
+  DistinctId: DISTINCT_ID,
+  Name: EVENT_NAME,
+  
+}
+tracking.Client{MIXPANEL_TOKEN}.Track(userId, event_name, propsMap, [queryParams])
 ```
 
 ```Go
