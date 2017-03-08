@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -28,6 +30,7 @@ func (mp *Client) sendEngage(e engageData) error {
 	if err != nil {
 		return err
 	}
+	io.Copy(ioutil.Discard, resp.Body)
 	resp.Body.Close()
 	return nil
 }
