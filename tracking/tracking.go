@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jobrapp/mixpanel"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
