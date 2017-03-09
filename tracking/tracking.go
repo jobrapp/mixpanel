@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"mixpanel"
+	"github.com/jobrapp/mixpanel"
 	"net/http"
 	"net/url"
 	"strconv"
