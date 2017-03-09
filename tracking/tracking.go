@@ -20,6 +20,7 @@ func (mp *Client) Track(event UserEvent, opts ...EventOptions) error {
 	if err != nil {
 		return err
 	}
+	io.Copy(ioutil.Discard, resp.Body)
 	resp.Body.Close()
 	return nil
 }
